@@ -1,0 +1,21 @@
+﻿@model User
+
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Registracija</title>
+</head>
+<body>
+    <h2>Registracija</h2>
+    <form asp-action="Register" method="post">
+        <div>
+            <label asp-for="Username">Korisničko ime:</label>
+            <input asp-for="Username" required>
+        </div>
+        <div>
+            <label asp-for="Password">Lozinka:</label>
+            <input asp-for="Password" type="password" required>
+        </div>
+        <div>
+            <button type="submit">Registriraj se</button>
+        </div>
