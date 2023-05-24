@@ -15,9 +15,10 @@ builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
     builder.Services.AddDbContext<GameDBContext>(options =>
         options.UseSqlServer(builder.Configuration.GetConnectionString("GameConnectionString")));
 
-    builder.Services.AddScoped<IGameRepository, GameRepository>();
-
-builder.Services.AddControllers();
+builder.Services.AddScoped<IGameRepository, GameRepository>();
+builder.Services.AddScoped<IUserRepository, UserRepository>();
+builder.Services.AddControllersWithViews();
+builder.Services.AddMvc();
 // Learn more about configuring Swagger/OpenAPI at https://aka.ms/aspnetcore/swashbuckle
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
@@ -40,6 +41,18 @@ app.UseStaticFiles();
 app.UseEndpoints(endpoints =>
 {
     endpoints.MapControllers();
+});
+
+app.UseEndpoints(endpoints =>
+{
+    endpoints.MapControllerRoute(
+        name: "default",
+        pattern: "{controller=Home}/{action=Index}/{id?}");
+
+    //endpoints.MapControllerRoute(
+    //    name: "account",
+    //    pattern: "account",
+    //    defaults: new { controller = "Login", action = "Index" });
 });
 
 app.MapControllers();

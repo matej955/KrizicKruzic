@@ -1,47 +1,60 @@
-﻿using KrizicKruzic.Models;
+﻿using KrizicKruzic.Interfaces;
+using KrizicKruzic.Models;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.Mvc.ModelBinding;
+using Microsoft.EntityFrameworkCore;
 
 namespace KrizicKruzic.Controllers
 {
     [Route("account")]
     public class LoginController : Controller
     {
-        [HttpGet("login")]
-        public IActionResult Login()
+        private readonly IUserRepository _userRepository;
+        private readonly GameDBContext _dbContext;
+
+        public LoginController(GameDBContext dbContext, IUserRepository userRepository)
         {
-            return View();
+            _dbContext = dbContext;
+            _userRepository = userRepository;
         }
 
         [HttpPost("login")]
         public IActionResult Login(User user)
         {
-            // Logika za provjeru korisničkog imena i lozinke
-            // ...
-
             if (user.Username == "admin" && user.Password == "admin")
             {
                 // Uspješna prijava
-                return RedirectToAction("Home", "Index");
+                return Ok("Uspješno ste prijavljeni");
             }
 
             // Neuspješna prijava
             ModelState.AddModelError("", "Neispravno korisničko ime ili lozinka.");
-            return View(user);
+            return Unauthorized(new { message = "Neuspješna prijava. Provjerite korisničko ime i lozinku." });
         }
-
-        [HttpGet("register")]
-        public IActionResult Register()
-        {
-            return View();
-        }
-
         [HttpPost("register")]
-        public IActionResult Register(User user)
+        public IActionResult Register([FromBody] KrizicKruzic.Models.RegisterModel model)
         {
-            // Logika za registraciju korisnika
-            // ...
+            // Provjera je li korisnik već registriran
+            if (_userRepository.IsUserRegistered(_dbContext, model.User.Username))
+            {
+                return BadRequest(new { message = "Korisničko ime već postoji. Molimo odaberite drugo korisničko ime." });
+            }
 
-            return RedirectToAction("Login");
+            // Kreiranje novog korisnika i spremanje u bazu podataka
+            var user = new User
+            {
+                Username = model.User.Username,
+                Password = model.User.Password
+                // Dodajte ostale potrebne podatke o korisniku
+            };
+
+            _dbContext.Add(user);
+
+            // Generiranje JWT tokena i ostale logike
+
+            return Ok(new { message = "Registracija uspješna." });
         }
+
+       
     }
 }

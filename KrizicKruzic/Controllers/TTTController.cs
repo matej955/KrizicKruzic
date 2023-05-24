@@ -1,4 +1,4 @@
-﻿using KrizicKruzic.Interfaces;
+﻿using KrizicKruzic.Models;
 using Microsoft.AspNetCore.Mvc;
 using System.Web.Http;
 
@@ -6,11 +6,11 @@ namespace KrizicKruzic.Controllers
 {
     public class TTTController : Controller
     {
-        private readonly IGameRepository _gameRepository;
+        private readonly GameRepository _gameRepository;
         private char[,] gameBoard;
         private char currentPlayer;
 
-        public TTTController(IGameRepository gameRepository)
+        public TTTController(GameRepository gameRepository)
         {
             gameBoard = new char[3, 3];
             currentPlayer = 'X';
