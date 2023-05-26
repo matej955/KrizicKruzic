@@ -13,7 +13,14 @@ namespace KrizicKruzic.Models
 
         IEnumerable<Game> IGameRepository.GetGames()
         {
-            return _dbContext.Games.ToList();
+            return null;
+            //return _dbContext.Games.ToList();
+        }
+
+        public void AddGame(Game game)
+        {
+            //_dbContext.Games.Add(game);
+            _dbContext.SaveChanges();
         }
     }
 }

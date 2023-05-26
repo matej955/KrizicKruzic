@@ -12,10 +12,18 @@ namespace KrizicKruzic.Models
             _dbContext = dbContext;
         }
 
-        public void AddUser(User user)
+        public bool AddUser(User user)
         {
-            _dbContext.Users.Add(user);
-            _dbContext.SaveChanges();
+            try
+            {
+                _dbContext.Users.Add(user);
+                _dbContext.SaveChanges();
+                return true;
+            }
+            catch (Exception)
+            {
+                return false;
+            }
         }
 
         public bool IsUserRegistered(GameDBContext dbContext, string username)
@@ -29,7 +37,28 @@ namespace KrizicKruzic.Models
 
         public bool ValidateCredentials(string username, string password)
         {
-            throw new NotImplementedException();
+            using (var dbContext = _dbContext)
+            {
+                var user = dbContext.Users.FirstOrDefault(u => u.Username == username);
+
+                {
+                    // Korisnik nije pronađen u bazi
+                    return false;
+                }
+
+                // Provjeri lozinku korisnika
+                return user.Password == password;
+            }
+        }
+
+        public User GetUser(string username)
+        {
+            return _dbContext.Users.FirstOrDefault(u => u.Username == username );
+        }
+
+        public Player GetPlayerByUsername(string username)
+        {
+            return _dbContext.Players.FirstOrDefault(p => p.Name == username);
         }
     }
 }

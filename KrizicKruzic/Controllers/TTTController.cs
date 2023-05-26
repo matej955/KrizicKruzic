@@ -1,5 +1,8 @@
-﻿using KrizicKruzic.Models;
+﻿using KrizicKruzic.Interfaces;
+using KrizicKruzic.Models;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.EntityFrameworkCore;
+using System.Diagnostics.Eventing.Reader;
 using System.Web.Http;
 
 namespace KrizicKruzic.Controllers
@@ -7,25 +10,42 @@ namespace KrizicKruzic.Controllers
     public class TTTController : Controller
     {
         private readonly GameRepository _gameRepository;
+        private readonly UserRepository _userRepository;
+        private readonly GameDBContext _dbContext;
         private char[,] gameBoard;
         private char currentPlayer;
 
-        public TTTController(GameRepository gameRepository)
+        public TTTController(GameRepository gameRepository, UserRepository userRepository)
         {
             gameBoard = new char[3, 3];
             currentPlayer = 'X';
             _gameRepository = gameRepository;
+            _userRepository = userRepository;
          }
 
+        [Authorize]
         [System.Web.Http.HttpPost]
         [System.Web.Http.Route("api/game/start")]
-        public IHttpActionResult     StartGame()
+        public IHttpActionResult StartGame()
         {
-            gameBoard = new char[3, 3];
-            currentPlayer = 'X';
+            var username = User.Identity.Name;
+            Game game = new Game();
+
+            if (!string.IsNullOrWhiteSpace(username))
+            {
+                var player = _userRepository.GetPlayerByUsername(User.Identity.Name);
+
+                //game.GameBoard = new char[3, 3];
+                game.CurrentPlayer = player.PlayerId;
+                game.Status = GameStatus.Open;
+            }
+            else return (IHttpActionResult)BadRequest("Igrač nije ulogiran");
+
+            _gameRepository.AddGame(game);
             return (IHttpActionResult)Ok("Nova igra je započeta.");
         }
 
+        [Authorize]
         [System.Web.Http.HttpPost]
         [System.Web.Http.Route("api/game/move")]
         public IHttpActionResult MakeMove([System.Web.Http.FromBody] Move move)
@@ -93,11 +113,71 @@ namespace KrizicKruzic.Controllers
 
             return true;
         }
-    }
+        [System.Web.Http.HttpGet]
+        [System.Web.Http.Route("game")]
+        public IActionResult GetAllGames(int pageNumber = 1, int pageSize = 10)
+        {
+            int totalItems = _dbContext.Games.Count(); // Ukupan broj igara
 
-    public class Move
-    {
-        public int Row { get; set; }
-        public int Column { get; set; }
+            // Paginacija
+            var games = _dbContext.Games
+                .OrderByDescending(g => g.StartTime)
+                .Skip((pageNumber - 1) * pageSize)
+                .Take(pageSize)
+                .ToList();
+
+            var result = new
+            {
+                TotalItems = totalItems,
+                PageNumber = pageNumber,
+                PageSize = pageSize,
+                Games = games.Select(g => new
+                {
+                    GameId = g.GameId,
+                    StartTime = g.StartTime,
+                    Status = GetGameStatus(g), // Metoda za određivanje statusa igre
+                    Winner = GetWinner(g) // Metoda za određivanje pobjednika igre
+                })
+            };
+
+            return Ok(result);
+        }
+        private string GetGameStatus(Game game)
+        {
+            DateTime now = DateTime.Now;
+
+            if (game.StartTime > now)
+            {
+                return GameStatus.Open.ToString();
+            }
+            else if (game.EndTime < game.StartTime)
+            {
+                return GameStatus.Finished.ToString();
+            }
+            else
+            {
+                return GameStatus.InProgress.ToString();
+            }
+        }
+
+        private string GetWinner(Game game)
+        {
+            if (game.WinnerId != null)
+            {
+                Player winner = _dbContext.Players.FirstOrDefault(p => p.Id == game.WinnerId);
+
+                if (winner != null)
+                {
+                    return winner.Name;
+                }
+            }
+
+            return "Nema pobjednika";
+        }
+        public class Move
+        {
+            public int Row { get; set; }
+            public int Column { get; set; }
+        }
     }
 }
